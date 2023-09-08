@@ -17,14 +17,6 @@
 
 static const char *TAG = "example";
 
-//typedef struct{ entra no lugar do que seria a label
-//    char uuid[UUID_LENGHT]; // identificador do comando unico
-//    uint8_t mode; // Um dos defines
-//    uint8_t pin_num;
-//    uint64_t period_us;
-//    void* cmd_struct;
-//    sControl_t* control;
-//} sCommand_t;
 
 void clean_string(char *str) {
     char *cleaned = malloc(strlen(str) + 1); // allocate a buffer to hold the cleaned string
@@ -76,7 +68,7 @@ esp_err_t Read_Data_Flash(sCommand_t* data, char* label){
 
     // Read back the written verification data using the mapped memory pointer
     memcpy(data, map_ptr, sizeof(sCommand_t));
-    //clean_string(data->palavra1);
+    //clean_string(data->pin_num);
    
     
     spi_flash_munmap(map_handle);
@@ -86,11 +78,13 @@ esp_err_t Read_Data_Flash(sCommand_t* data, char* label){
 }
 
 void map_partition(sCommand_t dados){
+    
+   
     char numero_pino[10];
     int i;
     sprintf(numero_pino, "gpio%d", dados.pin_num);
     ESP_LOGI(TAG, "numero pino: %s", numero_pino);
-
+   
 
     esp_partition_iterator_t iterator = esp_partition_find(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, NULL);
 
@@ -101,7 +95,7 @@ void map_partition(sCommand_t dados){
     }
 
     // Percorre todas as partições encontradas usando o iterador
-    for(i=0; i<=2; i++){
+    for(i=0; i<=3; i++){
      ESP_LOGI(TAG, "part: %d", i);
             const esp_partition_t *part = esp_partition_get(iterator);
             if (iterator == NULL) {
@@ -116,21 +110,24 @@ void map_partition(sCommand_t dados){
 
 
                 const sCommand_t label_dados = {
-                    .pin_num = dados.pin_num,
+                    .pin_num    = dados.pin_num,
+                    .mode       = dados.mode,
                 };
               
                 sCommand_t mem_dados = {
                     .pin_num = "",
+                    .mode    = "",
                 };
 
                 ESP_ERROR_CHECK(Write_Data_Flash(label_dados, label));
-                ESP_LOGI(TAG, "Written sample data to partition: %d", dados.pin_num);
-            
+                ESP_LOGI(TAG, "Written sample pin to partition: %d", dados.pin_num);
+                ESP_LOGI(TAG, "Written sample mode to partition: %d", dados.mode);
                 
                 Read_Data_Flash(&mem_dados, label);
-                ESP_LOGI(TAG, "Read sample data from partition using mapped memory: %d", mem_dados.pin_num);
+                ESP_LOGI(TAG, "Read sample pin from partition using mapped memory: %d", mem_dados.pin_num);
+                ESP_LOGI(TAG, "Read sample mode from partition using mapped memory: %d", mem_dados.mode);
                 
-                //if(strcmp(dados.pin_num, mem_dados.pin_num) == 0)
+                //if(strcmp(label, mem_dados.pin_num) == 0)
                 //   ESP_LOGI(TAG, "Data matches");
                 //else
                 //    ESP_LOGI(TAG, "Data dont't matches");
@@ -162,7 +159,8 @@ void app_main(void)
     //spi_flash_munmap(map_handle);
 
     sCommand_t dados;
-    dados.pin_num = 1;
+    dados.pin_num   =   1;
+    dados.mode      =   42;
 
     map_partition(dados);
 
