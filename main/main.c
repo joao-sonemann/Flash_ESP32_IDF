@@ -1,9 +1,3 @@
-/* Finding Partitions Example
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
 #include <string.h>
 #include <assert.h>
 #include "esp_partition.h"
@@ -19,7 +13,7 @@ static const char *TAG = "example";
 
 
 void clean_string(char *str) {
-    char *cleaned = malloc(strlen(str) + 1); // allocate a buffer to hold the cleaned string
+    char *cleaned = malloc(strlen(str) + 1); 
     if (!cleaned) {
         // error handling if malloc fails
         return;
@@ -66,7 +60,7 @@ esp_err_t Read_Data_Flash(sCommand_t* data, char* label){
     ESP_LOGI(TAG, "Mapped partition to data memory address %p", map_ptr);
 
 
-    // Read back the written verification data using the mapped memory pointer
+     //Read back the written verification data using the mapped memory pointer
     memcpy(data, map_ptr, sizeof(sCommand_t));
     //clean_string(data->pin_num);
    
@@ -78,13 +72,11 @@ esp_err_t Read_Data_Flash(sCommand_t* data, char* label){
 }
 
 void map_partition(sCommand_t dados){
-    
-   
     char numero_pino[10];
     int i;
     sprintf(numero_pino, "gpio%d", dados.pin_num);
     ESP_LOGI(TAG, "numero pino: %s", numero_pino);
-   
+
 
     esp_partition_iterator_t iterator = esp_partition_find(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, NULL);
 
@@ -95,7 +87,7 @@ void map_partition(sCommand_t dados){
     }
 
     // Percorre todas as partições encontradas usando o iterador
-    for(i=0; i<=3; i++){
+    for(i=0; i<=40; i++){
      ESP_LOGI(TAG, "part: %d", i);
             const esp_partition_t *part = esp_partition_get(iterator);
             if (iterator == NULL) {
@@ -107,30 +99,44 @@ void map_partition(sCommand_t dados){
                    printf("Encontrado\n");
 
                 char label[] = "gpio1";
-
+                    //sem esta label nao esta funcionando, mas com ela assim consigo fazer operaçoes em todas as partiçoes
 
                 const sCommand_t label_dados = {
-                    .pin_num    = dados.pin_num,
+                    .uuid       = "",
                     .mode       = dados.mode,
+                    .pin_num    = dados.pin_num,
+                    .period_us  = dados.period_us,
+                    //.cmd_struct = dados.cmd_struct,
+                    //.control    = dados.control,
                 };
-              
+
+                strcpy(label_dados.uuid, dados.uuid);
+
                 sCommand_t mem_dados = {
-                    .pin_num = "",
-                    .mode    = "",
+                    .uuid       = "",
+                    .mode       = "",
+                    .pin_num    = "",
+                    .period_us  = "",
+                    //.cmd_struct = "",
+                    //.control    = "",
+
                 };
 
                 ESP_ERROR_CHECK(Write_Data_Flash(label_dados, label));
-                ESP_LOGI(TAG, "Written sample pin to partition: %d", dados.pin_num);
-                ESP_LOGI(TAG, "Written sample mode to partition: %d", dados.mode);
+                
+                ESP_LOGI(TAG, "Written uuid to partition: %s", dados.uuid);
+                ESP_LOGI(TAG, "Written mode to partition: %d", dados.mode);
+                ESP_LOGI(TAG, "Written pin to partition: %d", dados.pin_num);
+                ESP_LOGI(TAG, "Written period to partition: %llu", dados.period_us);
+
                 
                 Read_Data_Flash(&mem_dados, label);
-                ESP_LOGI(TAG, "Read sample pin from partition using mapped memory: %d", mem_dados.pin_num);
-                ESP_LOGI(TAG, "Read sample mode from partition using mapped memory: %d", mem_dados.mode);
+
+                ESP_LOGI(TAG, "Read uuid from partition using mapped memory: %s", mem_dados.uuid);
+                ESP_LOGI(TAG, "Read mode from partition using mapped memory: %d", mem_dados.mode);
+                ESP_LOGI(TAG, "Read pin from partition using mapped memory: %d", mem_dados.pin_num);
+                ESP_LOGI(TAG, "Read period from partition using mapped memory: %llu", mem_dados.period_us);
                 
-                //if(strcmp(label, mem_dados.pin_num) == 0)
-                //   ESP_LOGI(TAG, "Data matches");
-                //else
-                //    ESP_LOGI(TAG, "Data dont't matches");
              }
 
 
@@ -144,25 +150,10 @@ void map_partition(sCommand_t dados){
 
 void app_main(void)
 {
-    /*
-    * This example uses the partition table from ../partitions_example.csv. For reference, its contents are as follows:
-    *
-        nvs,            data,   nvs,        0x9000,     0x6000,
-        phy_init,       data,   phy,        0xf000,     0x1000,
-        factory,        app,    factory,    0x10000,    1M,
-        label1,         data,   ,           ,           0x01000,
-        label2,         data,   ,           ,           0x01000,
-        label3,         data,   ,           ,           0x01000,
-    */
-    // Find the partition map in the partition table
-    // Unmap mapped memory
-    //spi_flash_munmap(map_handle);
-
     sCommand_t dados;
-    dados.pin_num   =   1;
-    dados.mode      =   42;
-
+    dados.pin_num = 2;
+    strcpy(dados.uuid, "casas");
+    
     map_partition(dados);
-
     ESP_LOGI(TAG, "Example end");
 }

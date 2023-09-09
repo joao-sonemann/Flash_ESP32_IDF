@@ -140,7 +140,7 @@ typedef struct{
     uint8_t pin_num;
     uint8_t pin_mode;
     int32_t data;
-    uint64_t timestamp
+    uint64_t timestamp;
 } sData_t;
 
 
