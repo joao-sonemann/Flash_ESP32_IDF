@@ -71,7 +71,49 @@ esp_err_t Read_Data_Flash(sCommand_t* data, char* label){
     return ESP_OK;
 }
 
-void map_partition(sCommand_t dados){
+
+esp_err_t Write_Data_Control(sControl_t control, char* label){
+    // achar partition do pin e escrever nela
+
+    const esp_partition_t *partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, label);
+    assert(partition != NULL);
+    size_t data_len = sizeof(sControl_t);
+
+    // Prepare data to be read later using the mapped address
+    ESP_ERROR_CHECK(esp_partition_erase_range(partition, 125, partition->size - (125 % 4096) ));
+    ESP_ERROR_CHECK(esp_partition_write(partition, 125, &control, data_len));
+    
+    return ESP_OK;
+}
+
+esp_err_t Read_Data_Control(sControl_t* control, char* label){
+    //passar numero do pino achar parition e preencher dentro do data
+
+    const esp_partition_t *partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, label);
+    assert(partition != NULL);
+    const void *map_ptr;
+    spi_flash_mmap_handle_t map_handle;
+
+    // Map the partition to data memory
+    ESP_ERROR_CHECK(esp_partition_mmap(partition, 125, partition->size - (125 % 4096), SPI_FLASH_MMAP_DATA, &map_ptr, &map_handle));
+    ESP_LOGI(TAG, "Mapped partition to data memory address %p", map_ptr);
+
+
+     //Read back the written verification data using the mapped memory pointer
+    memcpy(control, map_ptr, sizeof(sControl_t));
+    //clean_string(data->pin_num);
+   
+    
+    spi_flash_munmap(map_handle);
+    ESP_LOGI(TAG, "Unmapped partition from data memory");
+
+    return ESP_OK;
+}
+
+
+
+void map_partition(sCommand_t dados, sControl_t control){
+
     char numero_pino[10];
     int i;
     sprintf(numero_pino, "gpio%d", dados.pin_num);
@@ -102,24 +144,21 @@ void map_partition(sCommand_t dados){
                     //sem esta label nao esta funcionando, mas com ela assim consigo fazer operaçoes em todas as partiçoes
 
                 const sCommand_t label_dados = {
-                    .uuid       = "",
-                    .mode       = dados.mode,
-                    .pin_num    = dados.pin_num,
-                    .period_us  = dados.period_us,
-                    //.cmd_struct = dados.cmd_struct,
-                    //.control    = dados.control,
+                    .uuid               = "",
+                    .mode               = dados.mode,
+                    .pin_num            = dados.pin_num,
+                    .period_us          = dados.period_us,
                 };
+                    //.cmd_struct = dados.cmd_struct,
+                    //control,
 
                 strcpy(label_dados.uuid, dados.uuid);
 
                 sCommand_t mem_dados = {
-                    .uuid       = "",
-                    .mode       = "",
-                    .pin_num    = "",
-                    .period_us  = "",
-                    //.cmd_struct = "",
-                    //.control    = "",
-
+                    .uuid               = "",
+                    .mode               = "",
+                    .pin_num            = "",
+                    .period_us          = "",
                 };
 
                 ESP_ERROR_CHECK(Write_Data_Flash(label_dados, label));
@@ -136,6 +175,33 @@ void map_partition(sCommand_t dados){
                 ESP_LOGI(TAG, "Read mode from partition using mapped memory: %d", mem_dados.mode);
                 ESP_LOGI(TAG, "Read pin from partition using mapped memory: %d", mem_dados.pin_num);
                 ESP_LOGI(TAG, "Read period from partition using mapped memory: %llu", mem_dados.period_us);
+
+                
+                const sControl_t label_control = {
+                    .actuator_pin_num    = control.actuator_pin_num,
+                    .mode               = control.mode,
+                };
+
+                sControl_t mem_control = {
+                    .actuator_pin_num     ="",
+                    .mode                ="",
+                };
+
+                ESP_ERROR_CHECK(Write_Data_Control(label_control, label));
+                
+                //ESP_LOGI(TAG, "Written uuid to partition: %s", dados.uuid);
+                //ESP_LOGI(TAG, "Written mode to partition: %d", dados.mode);
+                //ESP_LOGI(TAG, "Written pin to partition: %d", dados.pin_num);
+                //ESP_LOGI(TAG, "Written period to partition: %llu", dados.period_us);
+                
+                Read_Data_Control(&mem_control, label);
+
+                //ESP_LOGI(TAG, "Read uuid from partition using mapped memory: %s", mem_dados.uuid);
+                //ESP_LOGI(TAG, "Read mode from partition using mapped memory: %d", mem_dados.mode);
+                //ESP_LOGI(TAG, "Read pin from partition using mapped memory: %d", mem_dados.pin_num);
+                //ESP_LOGI(TAG, "Read period from partition using mapped memory: %llu", mem_dados.period_us);
+
+
                 
              }
 
@@ -151,9 +217,11 @@ void map_partition(sCommand_t dados){
 void app_main(void)
 {
     sCommand_t dados;
+    sControl_t control;
+
     dados.pin_num = 2;
     strcpy(dados.uuid, "casas");
     
-    map_partition(dados);
+    map_partition(dados, control);
     ESP_LOGI(TAG, "Example end");
 }
