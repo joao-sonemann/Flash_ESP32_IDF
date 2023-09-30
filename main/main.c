@@ -5,7 +5,6 @@
 #include "esp_err.h"
 #include "cJSON.h"
 
-#include "sCommandList.h"
 
 #define SSID_MAX_LEN 32
 
@@ -80,8 +79,8 @@ esp_err_t Write_Data_Control(sControl_t control, char* label){
     size_t data_len = sizeof(sControl_t);
 
     // Prepare data to be read later using the mapped address
-    ESP_ERROR_CHECK(esp_partition_erase_range(partition, 125, partition->size - (125 % 4096) ));
-    ESP_ERROR_CHECK(esp_partition_write(partition, 125, &control, data_len));
+    ESP_ERROR_CHECK(esp_partition_erase_range(partition, 128, partition->size ));
+    ESP_ERROR_CHECK(esp_partition_write(partition, 128, &control, data_len));
     
     return ESP_OK;
 }
@@ -94,8 +93,9 @@ esp_err_t Read_Data_Control(sControl_t* control, char* label){
     const void *map_ptr;
     spi_flash_mmap_handle_t map_handle;
 
+
     // Map the partition to data memory
-    ESP_ERROR_CHECK(esp_partition_mmap(partition, 125, partition->size - (125 % 4096), SPI_FLASH_MMAP_DATA, &map_ptr, &map_handle));
+    ESP_ERROR_CHECK(esp_partition_mmap(partition, 128, partition->size, SPI_FLASH_MMAP_DATA, &map_ptr, &map_handle));
     ESP_LOGI(TAG, "Mapped partition to data memory address %p", map_ptr);
 
 
